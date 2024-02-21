@@ -21,7 +21,7 @@ class CircuitBreaker{
                 this._close();
             }
             
-            callback(res.statusCode,null);
+            callback(res,null);
         });
              
         req.on("error",e => {
@@ -57,7 +57,7 @@ let timerId = setTimeout( function tick(){
     
     cb.request(URL,(res,err) => {
         if (res) {
-            console.log("Responce server:"+res);
+            console.log("Responce server:"+res.statusCode);
         }
         if (err) {
             console.log(err);
