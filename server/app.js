@@ -17,7 +17,6 @@ const server = http.createServer((req, res) => {
             errorOrSuccess = Math.random();
         } else {
             res.statusCode = ERRS[Math.floor(Math.random()*(ERRS.length))];
-            console.log(res.statusCode)
             res.setHeader("Content-Type", "application/json");
             res.end(`{"message":"Error with status code ${res.statusCode}"}`);
             errorOrSuccess = Math.random();
