@@ -4,7 +4,7 @@ const DELAY = 10;
 const PORT = 9797;
 const ENDPOINT = "/app";
 const HOST = "localhost";
-const ERRS = [500,501,503,504]
+const ERRS = [500,502,503,504,508]
 let errorOrSuccess = Math.random();
 
 const server = http.createServer((req, res) => {
