@@ -14,7 +14,7 @@ class CircuitBreaker{
         }
         
         let req = http.get(url,res => {
-            if(res.statusCode == 500){
+            if(res.statusCode >= 500){
                 this._open();
             }
             else if (res.statusCode == 200) {

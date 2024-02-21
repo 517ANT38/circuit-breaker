@@ -3,6 +3,8 @@ const http = require('http');
 const DELAY = 10;
 const PORT = 9797;
 const ENDPOINT = "/app";
+const HOST = "localhost";
+const ERRS = [500,501,503,504]
 let errorOrSuccess = Math.random();
 
 const server = http.createServer((req, res) => {
@@ -14,7 +16,8 @@ const server = http.createServer((req, res) => {
             res.end(`{"message": "Success"}`);
             errorOrSuccess = Math.random();
         } else {
-            res.statusCode = 500;
+            res.statusCode = ERRS[Math.floor(Math.random()*(ERRS.length))];
+            console.log(res.statusCode)
             res.setHeader("Content-Type", "application/json");
             res.end(`{"message":"Error with status code ${res.statusCode}"}`);
             errorOrSuccess = Math.random();
@@ -31,5 +34,5 @@ setTimeout(function change(){
 
 
 server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}${ENDPOINT}`);
+  console.log(`Server is running on http://${HOST}:${PORT}${ENDPOINT}`);
 });
