@@ -1,57 +1,79 @@
 const http = require('http'); 
 
-class CircuitBreaker{
-    constructor(){
+class CircuitBreaker {
+    constructor(maxCountFail = 5){
+        this.state = "CLOSED";
+        this.lastFailTime = null;
+        this.failReq = 0;
+        this.maxCountFail = maxCountFail;
+    }
+
+    request(url,callback=(res,err)=>{}) {
+        if (this.state == "OPEN") {
+            callback(null,"Circuit breaker is open");
+        }
+        else if (this.state == "HALF-OPEN") {
+            this._helperRequest(url,1,callback);
+        }
+        else {
+            this._helperRequest(url,this.maxCountFail,callback);
+        }
+    }
+
+    _open() {
+        this.state = "OPEN";
+        this.lastFailTime = Date.now();
+        this.failReq = 0;
+    }
+
+    _close() {
+        this.failReq = 0;
         this.state = "CLOSED";
         this.lastFailTime = null;
     }
 
-     request(url,callback=(res,err)=>{}){
-        
-        if (this.state == "OPEN") {
-            
-            callback(null,"Circuit breaker is open");
-        }
-        
-        let req = http.get(url,res => {
+    _halfOpen() {
+        this.state = "HALF-OPEN";
+    }
+
+    _helperRequest(url,maxFailReq,callback) {
+        let req = http.get(url, res => {
             if(res.statusCode >= 500){
-                this._open();
-            }
-            else if (res.statusCode == 200) {
+                this.failReq++;
+                if (this.failReq >= maxFailReq) {                    
+                    this._open();
+                }
+                
+            } else if (res.statusCode == 200) {
                 this._close();
             }
             
-            callback(res,null);
+            callback(res, null);
         });
-             
+        
         req.on("error",e => {
+            this.failReq++;
+            if (this.failReq >= maxFailReq) {                    
+                this._open();
+            }
             callback(null,e.message);
-            this._open();
-           
         });
         
         req.end();
     }
-    _open(){
-        this.state = "OPEN";
-        this.lastFailTime = Date.now();
-    }
-    _close(){
-        this.state = "CLOSED";
-        this.lastFailTime = null;
-    }
 
-    checkState(interval=10){
+    checkState(interval = 10) {
         if (this.state == "OPEN" && this.lastFailTime) {
-            if(Date.now() - this.lastFailTime >= interval){
-                this._close();
+            if (Date.now() - this.lastFailTime >= interval) {
+                this._halfOpen();
             }
         }
     }
 }
+
 const cb = new CircuitBreaker();
 const DELAY = 3000;
-const URL = "http://localhost:9797/app"
+const URL = "http://localhost:9798/app"
 let timerId = setTimeout( function tick(){
     cb.checkState();
     
