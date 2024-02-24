@@ -11,6 +11,7 @@ class CircuitBreaker{
         if (this.state == "OPEN") {
             
             callback(null,"Circuit breaker is open");
+            return;
         }
         
         let req = http.get(url,res => {
@@ -51,7 +52,7 @@ class CircuitBreaker{
 }
 const cb = new CircuitBreaker();
 const DELAY = 3000;
-const URL = "http://localhost:9797/app"
+const URL = "http://localhost:9798/app"
 let timerId = setTimeout( function tick(){
     cb.checkState();
     
