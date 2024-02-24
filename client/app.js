@@ -4,15 +4,25 @@ class CircuitBreaker{
     constructor(){
         this.state = "CLOSED";
         this.lastFailTime = null;
+        this.halfOpenTimeout = 100; 
     }
 
      request(url,callback=(res,err)=>{}){
         
         if (this.state == "OPEN") {
-            
-            callback(null,"Circuit breaker is open");
+            const now = Date.now();
+            if (this.lastFailTime && now - this.lastFailTime >= this.halfOpenTimeout) {
+                this._halfOpen();
+                this._tryRequest(url,callback);
+            } else {
+                callback(null,"Circuit breaker is open");
+            }
+        } else {
+            this._tryRequest(url,callback);
         }
-        
+    }
+
+    _tryRequest(url,callback){
         let req = http.get(url,res => {
             if(res.statusCode >= 500){
                 this._open();
@@ -32,13 +42,19 @@ class CircuitBreaker{
         
         req.end();
     }
+
     _open(){
         this.state = "OPEN";
         this.lastFailTime = Date.now();
     }
+
     _close(){
         this.state = "CLOSED";
         this.lastFailTime = null;
+    }
+
+    _halfOpen(){
+        this.state = "HALF-OPEN";
     }
 
     checkState(interval=10){
@@ -57,7 +73,7 @@ let timerId = setTimeout( function tick(){
     
     cb.request(URL,(res,err) => {
         if (res) {
-            console.log("Responce server:"+res.statusCode);
+            console.log("Response server:"+res.statusCode);
         }
         if (err) {
             console.log(err);
@@ -65,4 +81,4 @@ let timerId = setTimeout( function tick(){
     });
       
     timerId = setTimeout(tick,DELAY);
-},DELAY);
+},DELAY); 
