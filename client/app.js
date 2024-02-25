@@ -1,7 +1,7 @@
 const http = require('http'); 
 
 class CircuitBreaker {
-    constructor(maxCountFail = 5){
+    constructor(maxCountFail = 3){
         this.state = "CLOSED";
         this.lastFailTime = null;
         this.failReq = 0;
