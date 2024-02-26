@@ -1,10 +1,12 @@
 const http = require('http'); 
 
 class CircuitBreaker {
-    constructor(maxCountFail = 3){
+    constructor(maxCountFail = 3,maxCountSuccess = 3){
         this.state = "CLOSED";
         this.lastFailTime = null;
         this.failReq = 0;
+        this.successReq = 0;
+        this.maxCountSuccess = maxCountSuccess;
         this.maxCountFail = maxCountFail;
     }
 
@@ -12,18 +14,17 @@ class CircuitBreaker {
         if (this.state == "OPEN") {
             callback(null,"Circuit breaker is open");
         }
-        else if (this.state == "HALF-OPEN") {
-            this._helperRequest(url,1,callback);
+        else if(this.state == "HALF-OPEN") {
+            this._helperRequest(url,callback,0,this.maxCountSuccess);
         }
         else {
-            this._helperRequest(url,this.maxCountFail,callback);
+            this._helperRequest(url,callback,this.maxCountFail,0);
         }
     }
 
     _open() {
         this.state = "OPEN";
         this.lastFailTime = Date.now();
-        this.failReq = 0;
     }
 
     _close() {
@@ -33,19 +34,23 @@ class CircuitBreaker {
     }
 
     _halfOpen() {
+        this.successReq = 0;
         this.state = "HALF-OPEN";
     }
 
-    _helperRequest(url,maxFailReq,callback) {
+    _helperRequest(url,callback,maxCountFail,maxCountSuccess) {
         let req = http.get(url, res => {
             if(res.statusCode >= 500){
-                this.failReq++;
-                if (this.failReq >= maxFailReq) {                    
+                this.failReq+=1;
+                if (this.failReq >= maxCountFail) {                 
                     this._open();
                 }
                 
             } else if (res.statusCode == 200) {
-                this._close();
+                this.successReq+=1;
+                if (this.successReq >= maxCountSuccess) {
+                    this._close();
+                }
             }
             
             callback(res, null);
