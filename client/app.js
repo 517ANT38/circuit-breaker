@@ -11,9 +11,13 @@ class CircuitBreaker{
         if (this.state == "OPEN") {
             
             callback(null,"Circuit breaker is open");
-            return;
+        }
+        else{
+            this._helperRequest(url,callback);
         }
         
+    }
+    _helperRequest(url,callback){
         let req = http.get(url,res => {
             if(res.statusCode >= 500){
                 this._open();
