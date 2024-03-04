@@ -39,8 +39,8 @@ class CircuitBreaker {
     }
 
     _helperRequest(url,options,callback,maxCountFail,maxCountSuccess) {
-
-        let req = http.request(url,options, res => {
+        const {body,...opts} = options
+        let req = http.request(url,opts, res => {
             if(res.statusCode >= 500){
                 this.failReq+=1;
                 if (this.failReq >= maxCountFail) {                 
@@ -64,7 +64,7 @@ class CircuitBreaker {
             }
             callback(null,e.message);
         });
-        req.write(options.body)
+        req.write(body)
         req.end();
     }
 
