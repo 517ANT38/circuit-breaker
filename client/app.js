@@ -10,7 +10,7 @@ class CircuitBreaker {
         this.maxCountFail = maxCountFail;
     }
 
-    request(url,options={method:"GET",headers:null,data:null},callback=(res,err)=>{}) {
+    request(url,options={method:"GET",headers:null,body:null},callback=(res,err)=>{}) {
         if (this.state == "OPEN") {
             callback(null,"Circuit breaker is open");
         }
