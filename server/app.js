@@ -1,7 +1,7 @@
 const http = require('http'); 
 
 const DELAY = 10;
-const PORT = 9798;
+const PORT = 9799;
 const ENDPOINT = "/app";
 const HOST = "localhost";
 const ERRS = [500,502,503,504,508]
@@ -28,9 +28,10 @@ const server = http.createServer(async (req, res) => {
         
         if (req.method == "POST") {
             let json = '';
-            for await (const chunk of request) {
+            for await (const chunk of req) {
                 json += chunk;
             }
+            req.setEncoding('utf8');
             const obj = JSON.parse(json);
             handling(res,obj.data)
         }

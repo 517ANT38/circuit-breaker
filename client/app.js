@@ -10,7 +10,7 @@ class CircuitBreaker {
         this.maxCountFail = maxCountFail;
     }
 
-    request(url,options={method:"GET"},callback=(res,err)=>{}) {
+    request(url,options={method:"GET",headers:null,data:null},callback=(res,err)=>{}) {
         if (this.state == "OPEN") {
             callback(null,"Circuit breaker is open");
         }
@@ -39,6 +39,7 @@ class CircuitBreaker {
     }
 
     _helperRequest(url,options,callback,maxCountFail,maxCountSuccess) {
+
         let req = http.request(url,options, res => {
             if(res.statusCode >= 500){
                 this.failReq+=1;
@@ -63,7 +64,7 @@ class CircuitBreaker {
             }
             callback(null,e.message);
         });
-        
+        req.write(options.body)
         req.end();
     }
 
@@ -78,18 +79,16 @@ class CircuitBreaker {
 
 const cb = new CircuitBreaker();
 const DELAY = 3000;
-const URL = "http://localhost:9798/app"
+const URL = "http://localhost:9799/app"
 
 const opts ={
-    method:"GET",
-    multipart: {
-        data: [
-            {
-                'content-type': 'application/json',
-                body: JSON.stringify({data:"My data"})
-            }
-        ]
-    }
+    method:"POST",
+    headers: {
+        'content-type': 'application/json'
+    },
+    
+    body: JSON.stringify({data:"My data"})
+
 }
 let timerId = setTimeout( function tick(){
     cb.checkState();
