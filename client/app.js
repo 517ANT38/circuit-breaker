@@ -10,15 +10,15 @@ class CircuitBreaker {
         this.maxCountFail = maxCountFail;
     }
 
-    request(url,callback=(res,err)=>{}) {
+    request(url,options,callback=(res,err)=>{}) {
         if (this.state == "OPEN") {
             callback(null,"Circuit breaker is open");
         }
         else if(this.state == "HALF-OPEN") {
-            this._helperRequest(url,callback,0,this.maxCountSuccess);
+            this._helperRequest(url,options,callback,0,this.maxCountSuccess);
         }
         else {
-            this._helperRequest(url,callback,this.maxCountFail,0);
+            this._helperRequest(url,options,callback,this.maxCountFail,0);
         }
     }
 
@@ -38,15 +38,15 @@ class CircuitBreaker {
         this.state = "HALF-OPEN";
     }
 
-    _helperRequest(url,callback,maxCountFail,maxCountSuccess) {
-        let req = http.get(url, res => {
+    _helperRequest(url,options={method:"GET"},callback,maxCountFail,maxCountSuccess) {
+        let req = http.request(url,options, res => {
             if(res.statusCode >= 500){
                 this.failReq+=1;
                 if (this.failReq >= maxCountFail) {                 
                     this._open();
                 }
                 
-            } else if (res.statusCode == 200) {
+            } else if (res.statusCode >= 200 && res.statusCode < 300) {
                 this.successReq+=1;
                 if (this.successReq >= maxCountSuccess) {
                     this._close();
@@ -93,3 +93,4 @@ let timerId = setTimeout( function tick(){
       
     timerId = setTimeout(tick,DELAY);
 },DELAY);
+
