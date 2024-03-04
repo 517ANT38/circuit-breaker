@@ -7,20 +7,35 @@ const HOST = "localhost";
 const ERRS = [500,502,503,504,508]
 let errorOrSuccess = Math.random();
 
-const server = http.createServer((req, res) => {
+
+function handling(res,resStr){
+    if (errorOrSuccess < 0.5) {
+        res.statusCode = 200;
+        res.setHeader("Content-Type", "application/json");
+        res.end(`{"message": "${resStr}"}`);
+        errorOrSuccess = Math.random();
+    } else {
+        res.statusCode = ERRS[Math.floor(Math.random()*(ERRS.length))];
+        res.setHeader("Content-Type", "application/json");
+        res.end(`{"message":"Error with status code ${res.statusCode}"}`);
+        errorOrSuccess = Math.random();
+    }
+}
+
+
+const server = http.createServer(async (req, res) => {
     if (req.url == ENDPOINT) {    
-  
-        if (errorOrSuccess < 0.5) {
-            res.statusCode = 200;
-            res.setHeader("Content-Type", "application/json");
-            res.end(`{"message": "Success"}`);
-            errorOrSuccess = Math.random();
-        } else {
-            res.statusCode = ERRS[Math.floor(Math.random()*(ERRS.length))];
-            res.setHeader("Content-Type", "application/json");
-            res.end(`{"message":"Error with status code ${res.statusCode}"}`);
-            errorOrSuccess = Math.random();
+        
+        if (req.method == "POST") {
+            let json = '';
+            for await (const chunk of request) {
+                json += chunk;
+            }
+            const obj = JSON.parse(json);
+            handling(res,obj.data)
         }
+        else handling(res,"GET success");
+        
     }
   
 });
