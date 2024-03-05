@@ -1,41 +1,26 @@
 const http = require('http'); 
 
 const DELAY = 10;
-const PORT = 9799;
+const PORT = 9797;
 const ENDPOINT = "/app";
 const HOST = "localhost";
 const ERRS = [500,502,503,504,508]
 let errorOrSuccess = Math.random();
 
 
-function handling(res,resStr){
-    if (errorOrSuccess < 0.5) {
-        res.statusCode = 200;
-        res.setHeader("Content-Type", "application/json");
-        res.end(`{"message": "${resStr}"}`);
-        errorOrSuccess = Math.random();
-    } else {
-        res.statusCode = ERRS[Math.floor(Math.random()*(ERRS.length))];
-        res.setHeader("Content-Type", "application/json");
-        res.end(`{"message":"Error with status code ${res.statusCode}"}`);
-        errorOrSuccess = Math.random();
-    }
-}
-
-
-const server = http.createServer(async (req, res) => {
+const server = http.createServer((req, res) => {
     if (req.url == ENDPOINT) {    
-        
-        if (req.method == "POST") {
-            let json = '';
-            for await (const chunk of req) {
-                json += chunk;
-            }
-            req.setEncoding('utf8');
-            const obj = JSON.parse(json);
-            handling(res,obj.data)
+        if (errorOrSuccess < 0.5) {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/json");
+            res.end(`{"message": "Success req"}`);
+            errorOrSuccess = Math.random();
+        } else {
+            res.statusCode = ERRS[Math.floor(Math.random()*(ERRS.length))];
+            res.setHeader("Content-Type", "application/json");
+            res.end(`{"message":"Error with status code ${res.statusCode}"}`);
+            errorOrSuccess = Math.random();
         }
-        else handling(res,"GET success");
         
     }
   

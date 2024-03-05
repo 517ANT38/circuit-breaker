@@ -10,7 +10,7 @@ class CircuitBreaker {
         this.maxCountFail = maxCountFail;
     }
 
-    request(url,options={method:"GET",headers:null,body:null},callback=(res,err)=>{}) {
+    request(url,callback=(res,err)=>{},options={method:"GET",headers:null,body:null}) {
         if (this.state == "OPEN") {
             callback(null,"Circuit breaker is open");
         }
@@ -64,7 +64,7 @@ class CircuitBreaker {
             }
             callback(null,e.message);
         });
-        req.write(body)
+        if(body) req.write(body);
         req.end();
     }
 
@@ -79,7 +79,7 @@ class CircuitBreaker {
 
 const cb = new CircuitBreaker();
 const DELAY = 3000;
-const URL = "http://localhost:9799/app"
+const URL = "http://localhost:9797/app"
 
 const opts ={
     method:"POST",
@@ -93,23 +93,23 @@ const opts ={
 let timerId = setTimeout( function tick(){
     cb.checkState();
     
-    // cb.request(URL,(res,err) => {
-    //     if (res) {
-    //         console.log("Responce GET request from server:"+res.statusCode);
-    //     }
-    //     if (err) {
-    //         console.log(err);
-    //     }
-    // });
+    cb.request(URL,(res,err) => {
+        if (res) {
+            console.log("Responce GET request from server:"+res.statusCode);
+        }
+        if (err) {
+            console.log(err);
+        }
+    });
     
-    cb.request(URL,opts,(res,err) => {
+    cb.request(URL,(res,err) => {
         if (res) {
             console.log("Responce POST request from server:"+res.statusCode);
         }
         if (err) {
             console.log(err);
         }
-    })
+    },opts);
     
     timerId = setTimeout(tick,DELAY);
 },DELAY);
