@@ -14,11 +14,8 @@ class CircuitBreaker {
         if (this.state == "OPEN") {
             callback(null,"Circuit breaker is open");
         }
-        else if(this.state == "HALF-OPEN") {
-            this._helperRequest(url,options,callback,0,this.maxCountSuccess);
-        }
         else {
-            this._helperRequest(url,options,callback,this.maxCountFail,0);
+            this._helperRequest(url,options,callback);
         }
     }
 
@@ -38,20 +35,24 @@ class CircuitBreaker {
         this.state = "HALF-OPEN";
     }
 
-    _helperRequest(url,options,callback,maxCountFail,maxCountSuccess) {
+    _helperRequest(url,options,callback) {
         const {body,...opts} = options
         let req = http.request(url,opts, res => {
             if(res.statusCode >= 500){
+                                 
                 this.failReq+=1;
-                if (this.failReq >= maxCountFail) {                 
+                if (this.state =="HALF-OPEN" || this.failReq >= this.maxCountFail) {                 
                     this._open();
-                }
+                }                   
+                
                 
             } else if (res.statusCode >= 200 && res.statusCode < 300) {
+                
                 this.successReq+=1;
-                if (this.successReq >= maxCountSuccess) {
+                if (this.state == "CLOSED" || this.successReq >= this.maxCountSuccess) {
                     this._close();
                 }
+                
             }
             
             callback(res, null);
@@ -59,7 +60,7 @@ class CircuitBreaker {
         
         req.on("error",e => {
             this.failReq++;
-            if (this.failReq >= maxFailReq) {                    
+            if (this.state =="HALF-OPEN" || this.failReq >= this.maxCountFail) {                    
                 this._open();
             }
             callback(null,e.message);
@@ -68,7 +69,7 @@ class CircuitBreaker {
         req.end();
     }
 
-    checkState(interval = 10) {
+    checkState(interval = 5000) {
         if (this.state == "OPEN" && this.lastFailTime) {
             if (Date.now() - this.lastFailTime >= interval) {
                 this._halfOpen();
