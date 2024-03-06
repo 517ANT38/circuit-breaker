@@ -10,12 +10,12 @@ class CircuitBreaker {
         this.maxCountFail = maxCountFail;
     }
 
-    request(url,callback=(res,err)=>{},options={method:"GET",headers:null,body:null}) {
+    request(url,options={method:"GET",headers:null,body:null}) {
         if (this.state == "OPEN") {
-            callback(null,"Circuit breaker is open");
+            return Promise.reject(new Error('Circuit breaker is open'))
         }
         else {
-            this._helperRequest(url,options,callback);
+            return this._helperRequest(url,options);
         }
     }
 
@@ -35,38 +35,59 @@ class CircuitBreaker {
         this.state = "HALF-OPEN";
     }
 
-    _helperRequest(url,options,callback) {
-        const {body,...opts} = options
-        let req = http.request(url,opts, res => {
-            if(res.statusCode >= 500){
-                                 
-                this.failReq+=1;
-                if (this.state =="HALF-OPEN" || this.failReq >= this.maxCountFail) {                 
+    _helperRequest(url,options) {
+        const {body,...opts} = options;
+        return new Promise((resolve,reject)=>{
+            let req = http.request(url,opts, res => {
+                this._helper(res);
+                let resBody = [];
+                res.on('data', function(chunk) {
+                    resBody.push(chunk);
+                });
+                res.on('end', function() {
+                    try {
+                        resBody = JSON.parse(Buffer.concat(resBody).toString());
+                    } catch(e) {
+                        reject(e);
+                    }
+                    resolve({
+                        body:resBody,
+                        headers:res.headers,
+                        statusCode:res.statusCode
+                    });
+                });             
+                
+            });
+            
+            req.on("error",e => {
+                this.failReq++;
+                if (this.state =="HALF-OPEN" || this.failReq >= this.maxCountFail) {                    
                     this._open();
-                }                   
-                
-                
-            } else if (res.statusCode >= 200 && res.statusCode < 300) {
-                
-                this.successReq+=1;
-                if (this.state == "CLOSED" || this.successReq >= this.maxCountSuccess) {
-                    this._close();
                 }
-                
+                reject(e);
+            });
+            if(body) req.write(body);
+            req.end();
+        });
+    }
+
+    _helper(res){
+        if(res.statusCode >= 500){
+                                    
+            this.failReq+=1;
+            if (this.state =="HALF-OPEN" || this.failReq >= this.maxCountFail) {                 
+                this._open();
+            }                   
+            
+            
+        } else if (res.statusCode >= 200 && res.statusCode < 300) {
+            
+            this.successReq+=1;
+            if (this.state == "CLOSED" || this.successReq >= this.maxCountSuccess) {
+                this._close();
             }
             
-            callback(res, null);
-        });
-        
-        req.on("error",e => {
-            this.failReq++;
-            if (this.state =="HALF-OPEN" || this.failReq >= this.maxCountFail) {                    
-                this._open();
-            }
-            callback(null,e.message);
-        });
-        if(body) req.write(body);
-        req.end();
+        }   
     }
 
     checkState(interval = 5000) {
@@ -91,27 +112,19 @@ const opts ={
     body: JSON.stringify({data:"My data"})
 
 }
-let timerId = setTimeout( function tick(){
-    cb.checkState();
-    
-    cb.request(URL,(res,err) => {
-        if (res) {
-            console.log("Responce GET request from server:"+res.statusCode);
+async function helpRequests() {
+    for (let i = 0; i < 100; i++) {
+        try {
+            const response = await cb.request(URL,opts)
+            console.log('Server response:', response.statusCode)
         }
-        if (err) {
-            console.log(err);
+        catch (error) {
+            console.log(error.message)
+            
         }
-    });
-    
-    cb.request(URL,(res,err) => {
-        if (res) {
-            console.log("Responce POST request from server:"+res.statusCode);
-        }
-        if (err) {
-            console.log(err);
-        }
-    },opts);
-    
-    timerId = setTimeout(tick,DELAY);
-},DELAY);
+        await new Promise(resolve => setTimeout(resolve, DELAY));
+    }
+}
+
+helpRequests();
 
