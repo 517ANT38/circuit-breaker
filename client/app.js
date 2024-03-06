@@ -46,7 +46,10 @@ class CircuitBreaker {
                 });
                 res.on('end', function() {
                     try {
-                        resBody = JSON.parse(Buffer.concat(resBody).toString());
+                        if (resBody.length == 0) {
+                            resBody = null;
+                        }
+                        else resBody = JSON.parse(Buffer.concat(resBody).toString());
                     } catch(e) {
                         reject(e);
                     }

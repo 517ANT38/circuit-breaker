@@ -16,7 +16,7 @@ const halding = (res,s="Success req")=>{
     } else {
         res.statusCode = ERRS[Math.floor(Math.random()*(ERRS.length))];
         res.setHeader("Content-Type", "application/json");
-        res.end(`{"message":"Error with status code ${res.statusCode}"}`);
+        res.end(`{"msg":"Error with status code ${res.statusCode}"}`);
         errorOrSuccess = Math.random();
     }
 }
@@ -36,7 +36,7 @@ const server = http.createServer((req, res) => {
                 } catch(e) {
                     console.log(e);
                 }
-                halding(res,resBody);
+                halding(res,resBody.data);
             });
         }
     }
