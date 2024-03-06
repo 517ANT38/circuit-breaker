@@ -114,6 +114,7 @@ const opts ={
 }
 async function helpRequests() {
     for (let i = 0; i < 100; i++) {
+        cb.checkState();
         try {
             const response = await cb.request(URL,opts)
             console.log('Server response:', response.statusCode)
