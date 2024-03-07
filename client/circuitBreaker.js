@@ -1,9 +1,10 @@
 const http = require('http'); 
-
+const state = require("./state");
 class CircuitBreaker {
-    constructor(maxCountFail = 3,maxCountSuccess = 3){
-        this.state = "CLOSED";
+    constructor(maxCountFail = 3,maxCountSuccess = 3,interval = 5000){
+        this.state = state.CLOSED;
         this.lastFailTime = null;
+        this.interval = interval;
         this.failReq = 0;
         this.successReq = 0;
         this.maxCountSuccess = maxCountSuccess;
@@ -11,7 +12,7 @@ class CircuitBreaker {
     }
 
     request(url,options={method:"GET",headers:null,body:null}) {
-        if (this.state == "OPEN") {
+        if (this.state == state.OPEN) {
             return Promise.reject(new Error('Circuit breaker is open'))
         }
         else {
@@ -20,19 +21,19 @@ class CircuitBreaker {
     }
 
     _open() {
-        this.state = "OPEN";
+        this.state = state.OPEN;
         this.lastFailTime = Date.now();
     }
 
     _close() {
         this.failReq = 0;
-        this.state = "CLOSED";
+        this.state = state.CLOSED;
         this.lastFailTime = null;
     }
 
     _halfOpen() {
         this.successReq = 0;
-        this.state = "HALF-OPEN";
+        this.state = state.HALF_OPEN;
     }
 
     _helperRequest(url,options) {
@@ -93,42 +94,14 @@ class CircuitBreaker {
         }   
     }
 
-    checkState(interval = 5000) {
-        if (this.state == "OPEN" && this.lastFailTime) {
-            if (Date.now() - this.lastFailTime >= interval) {
+    _checkState() {
+        if (this.state == state.OPEN && this.lastFailTime) {
+            if (Date.now() - this.lastFailTime >= this.interval) {
                 this._halfOpen();
             }
         }
     }
 }
 
-const cb = new CircuitBreaker();
-const DELAY = 3000;
-const URL = "http://localhost:9797/app"
-
-const opts ={
-    method:"POST",
-    headers: {
-        'content-type': 'application/json'
-    },
-    
-    body: JSON.stringify({data:"My data"})
-
-}
-async function helpRequests() {
-    for (let i = 0; i < 100; i++) {
-        cb.checkState();
-        try {
-            const response = await cb.request(URL,opts)
-            console.log('Server response:', response.statusCode)
-        }
-        catch (error) {
-            console.log(error.message)
-            
-        }
-        await new Promise(resolve => setTimeout(resolve, DELAY));
-    }
-}
-
-helpRequests();
+module.exports=CircuitBreaker
 
